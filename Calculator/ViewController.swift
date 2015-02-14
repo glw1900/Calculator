@@ -10,32 +10,53 @@ import UIKit
 
 class ViewController: UIViewController {
 
+    @IBOutlet weak var history: UILabel!
     @IBOutlet weak var display: UILabel!
-    var userIsInMiddleOfTyping: Bool = false
+    var userIsInMiddleOfTyping = false
+    var decimalMark = false
     
     @IBAction func digit(sender: UIButton) {
         let digit = sender.currentTitle!
+        if(digit != "." || decimalMark == false) {
+            addNumber(digit)
+            if(digit == ".") {decimalMark = true}
+        }
+    }
+
+    func addNumber(digit: String) {
         if userIsInMiddleOfTyping {
             display.text = display.text! + digit
         } else {
             display.text = digit
             userIsInMiddleOfTyping = true
         }
-        
-        
+    }
+    
+    @IBAction func clear() {
+        displayValue = 0
+        numberStack = []
+        history.text = ""
     }
     
     @IBAction func operate(sender: UIButton) {
         let operation = sender.currentTitle!
         if userIsInMiddleOfTyping{
+            addHistory()
             enter()
         }
+        historyOperation = operation
         switch operation {
         case "+":performOperation({$0+$1})
         case "−":performOperation({$1-$0})
         case "×":performOperation({$1*$0})
         case "÷":performOperation({$1/$0})
         case "√":performOperation({sqrt($0)})
+        case "sin":performOperation({sin($0)})
+        case "cos":performOperation({cos($0)})
+        case "π":
+            let x = M_PI
+            displayValue = x
+            enter()
         default: break
         }
     }
@@ -56,12 +77,31 @@ class ViewController: UIViewController {
     
     var numberStack = Array<Double>()
     
+    
+    @IBAction func addHistory() {
+        if(userIsInMiddleOfTyping == true){
+            historyOperation = "\(displayValue)"
+        }
+    }
+    
     @IBAction func enter() {
         userIsInMiddleOfTyping = false
+        decimalMark = false
         numberStack.append(displayValue)
         print("\(numberStack)")
         
     }
+    
+    var historyOperation:String {
+        set{
+            history.text! = history.text! + " \(newValue)"
+        }
+        get {
+            return history.text!
+        }
+    }
+    
+    
     
     var displayValue:Double {
     
