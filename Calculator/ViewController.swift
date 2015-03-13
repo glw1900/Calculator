@@ -15,6 +15,8 @@ class ViewController: UIViewController {
     var userIsInMiddleOfTyping = false
     var decimalMark = false
     
+    var calculatorBrain = Calculator()
+    
     @IBAction func digit(sender: UIButton) {
         let digit = sender.currentTitle!
         if(digit != "." || decimalMark == false) {
@@ -22,7 +24,23 @@ class ViewController: UIViewController {
             if(digit == ".") {decimalMark = true}
         }
     }
-
+    
+    @IBAction func pushValue(sender: UIButton) {
+        calculatorBrain.pushOperand("M")
+        if let result = calculatorBrain.evaluate() {
+            displayValue = result
+        } else {
+            displayValue = nil
+        }
+    }
+    
+    @IBAction func setValue(sender: UIButton) {
+        if displayValue != nil {
+            calculatorBrain.variableValues["M"] = displayValue
+            userIsInMiddleOfTyping = false
+        }
+    }
+    
     func addNumber(digit: String) {
         if userIsInMiddleOfTyping {
             display.text = display.text! + digit
@@ -33,84 +51,65 @@ class ViewController: UIViewController {
     }
     
     @IBAction func clear() {
-        displayValue = 0
-        numberStack = []
+        display.text = ""
         history.text = ""
+        calculatorBrain.refresh()
     }
     
     @IBAction func operate(sender: UIButton) {
-        let operation = sender.currentTitle!
         if userIsInMiddleOfTyping{
             addHistory()
             enter()
         }
-        historyOperation = operation
-        switch operation {
-        case "+":performOperation({$0+$1})
-        case "−":performOperation({$1-$0})
-        case "×":performOperation({$1*$0})
-        case "÷":performOperation({$1/$0})
-        case "√":performOperation({sqrt($0)})
-        case "sin":performOperation({sin($0)})
-        case "cos":performOperation({cos($0)})
-        case "π":
-            let x = M_PI
-            displayValue = x
-            enter()
-        default: break
+        
+        historyOperation = sender.currentTitle!
+        if let operation = sender.currentTitle {
+            if let result = calculatorBrain.performOperation(operation) {
+                displayValue = result
+            }
+            else {displayValue = nil}
         }
     }
-    
-    func performOperation(operation:(Double,Double) -> Double) {
-        if(numberStack.count >= 2) {
-            displayValue = operation(numberStack.removeLast(),numberStack.removeLast())
-            enter()
-        }
-    }
-    
-    func performOperation(operation:(Double) -> Double) {
-        if(numberStack.count >= 1) {
-            displayValue = operation(numberStack.removeLast())
-            enter()
-        }
-    }
-    
-    var numberStack = Array<Double>()
-    
     
     @IBAction func addHistory() {
         if(userIsInMiddleOfTyping == true){
-            historyOperation = "\(displayValue)"
+            historyOperation = "\(displayValue!)"
         }
     }
     
     @IBAction func enter() {
         userIsInMiddleOfTyping = false
         decimalMark = false
-        numberStack.append(displayValue)
-        print("\(numberStack)")
-        
+        if let result = calculatorBrain.pushOperand(displayValue!) {
+                displayValue = result
+        } else {
+            displayValue = nil
+        }
     }
     
     var historyOperation:String {
         set{
-            history.text! = history.text! + " \(newValue)"
+            history.text! = calculatorBrain.description + "="
         }
         get {
             return history.text!
         }
     }
     
-    
-    
-    var displayValue:Double {
+    var displayValue: Double? {
     
         get{
             return NSNumberFormatter().numberFromString(display.text!)!.doubleValue
         }
         
         set{
-            display.text = "\(newValue)"
+            if newValue == nil {
+                clear()
+                display.text = "Error"
+                userIsInMiddleOfTyping = false
+                return
+            }
+            display.text = "\(newValue!)"
             userIsInMiddleOfTyping = false
         }
     }
